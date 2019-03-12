@@ -15,8 +15,7 @@ q = queue.Queue()
 AcceptedNodes = [0x584, 0x604]
 
 
-class can_rx_queue(Thread):
-
+class BaseThread(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.can_run = Event()
@@ -24,6 +23,17 @@ class can_rx_queue(Thread):
         self.can_run.set()
         self.term.clear()
 
+    def pause(self):
+        self.can_run.clear()
+
+    def resume(self):
+        self.can_run.set()
+
+    def terminate(self):
+        self.term.set()
+
+
+class CanRxQueue(BaseThread):
     def run(self):
         while True:
             if self.can_run.is_set():
@@ -33,22 +43,8 @@ class can_rx_queue(Thread):
             if self.term.is_set():
                 break
 
-    def pause(self):
-        self.can_run.clear()
 
-    def terminate(self):
-        self.term.set()
-
-
-class queue_read(Thread):
-
-    def __init__(self):
-        Thread.__init__(self)
-        self.can_run = Event()
-        self.term = Event()
-        self.can_run.set()
-        self.term.clear()
-
+class QueueRead(BaseThread):
     def run(self):
         while True:
             if self.can_run.is_set():
@@ -70,21 +66,11 @@ class queue_read(Thread):
             if self.term.is_set():
                 break
 
-    def pause(self):
-        self.can_run.clear()
 
-    def terminate(self):
-        self.term.set()
-
-
-class can_send(Thread):
-
+class CanSend(BaseThread):
     def __init__(self):
-        Thread.__init__(self)
-        self.can_run = Event()
-        self.term = Event()
+        BaseThread.__init__(self)
         self.can_run.clear()
-        self.term.clear()
 
     def run(self):
         while True:
@@ -99,24 +85,21 @@ class can_send(Thread):
             if self.term.is_set():
                 break
 
-    def pause(self):
-        self.can_run.clear()
-
-    def resume(self):
-        self.can_run.set()
-
-    def terminate(self):
-        self.term.set()
-
 
 def can_ctrl(cmd):
     if cmd == 1:
         s_can.resume()
+        b1Entry.config(state='readonly')
+        b2Entry.config(state='readonly')
+        b3Entry.config(state='readonly')
     if cmd == 0:
         s_can.pause()
+        b1Entry.config(state='normal')
+        b2Entry.config(state='normal')
+        b3Entry.config(state='normal')
 
 
-def stop_GUI():
+def stop_gui():
     s_can.terminate()
     t_can.terminate()
     t_queue.terminate()
@@ -135,7 +118,7 @@ b2Entry = Entry(root)
 b3Entry = Entry(root)
 sendButton = Button(root, text="CAN - Start", command=lambda: can_ctrl(1))
 stopButton = Button(root, text="CAN - stop", command=lambda: can_ctrl(0))
-endButton = Button(root, text="Terminate GUI", command=lambda: stop_GUI())
+endButton = Button(root, text="Terminate GUI", command=lambda: stop_gui())
 
 b1Label.grid(row=0, column=0)
 b2Label.grid(row=0, column=1)
@@ -147,9 +130,9 @@ sendButton.grid(row=3, column=0)
 stopButton.grid(row=3, column=1)
 endButton.grid(row=3, column=2)
 
-t_can = can_rx_queue()
-t_queue = queue_read()
-s_can = can_send()
+t_can = CanRxQueue()
+t_queue = QueueRead()
+s_can = CanSend()
 
 
 def main():

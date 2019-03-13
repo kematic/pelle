@@ -1,9 +1,11 @@
 import can
 import queue
 from tkinter import *
+from tkinter import messagebox
 from threading import Thread, Event
 from datetime import *
 import time
+
 
 try:
     bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
@@ -87,11 +89,13 @@ class CanSend(BaseThread):
 
 
 def can_ctrl(cmd):
-    if cmd == 1:
+    if cmd == 1 and not len(b1Entry.get()) == 0 and not len(b2Entry.get()) == 0 and not len(b3Entry.get()) == 0:
         s_can.resume()
         b1Entry.config(state='readonly')
         b2Entry.config(state='readonly')
         b3Entry.config(state='readonly')
+    if len(b1Entry.get()) == 0 or len(b2Entry.get()) == 0 or len(b3Entry.get()) == 0:
+        messagebox.showinfo('Indtastnings fejl', 'Du mangler at indtaste data i en af byte felterne.')
     if cmd == 0:
         s_can.pause()
         b1Entry.config(state='normal')
